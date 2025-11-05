@@ -1,16 +1,17 @@
+from core.video_stream import VideoStream
 from core.color_tracker import detect_bracelets
 from core.gesture_mapper import map_gesture
+from core.input_emulator import press_command
 import cv2
 
-# Inicializa webcam (usando OpenCV direto, sem VideoStream personalizado)
-cap = cv2.VideoCapture(0)
-if not cap.isOpened():
+vs = VideoStream()
+if not vs.is_opened():
     print("Erro ao abrir webcam!")
     exit()
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
+    frame = vs.read()
+    if frame is None:
         break
 
     center_blue, center_red, mask_blue, mask_red = detect_bracelets(frame)
@@ -25,9 +26,14 @@ while True:
 
     print(f"Comando azul: {cmd_blue}, Comando vermelho: {cmd_red}")
 
+    if cmd_blue:
+        press_command(cmd_blue)
+    if cmd_red:
+        press_command(cmd_red)
+
     cv2.imshow('Frame', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-cap.release()
+vs.release()
 cv2.destroyAllWindows()

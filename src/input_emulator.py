@@ -1,7 +1,6 @@
-# commit
 import logging
 
-from pynput.keyboard import Controller, Key
+from pynput.keyboard import Controller
 
 keyboard = Controller()
 logging.basicConfig(
@@ -21,12 +20,8 @@ COMMAND_MAP = {
 
 
 def press_command(command):
-    """
-    Pressiona a tecla correspondente ao comando.
-    """
     if command is None or command not in COMMAND_MAP:
         return
-
     key = COMMAND_MAP[command]
     try:
         keyboard.press(key)

@@ -6,12 +6,16 @@ import numpy as np
 
 class ColorTracker:
     def __init__(self):
-        self.blue_lower = np.array([100, 150, 50])
-        self.blue_upper = np.array([130, 255, 255])
+        # Intervalo azul ajustado para capturar diferentes tons de azul
+        self.blue_lower = np.array([90, 80, 50])
+        self.blue_upper = np.array([140, 255, 255])
+
+        # Intervalo vermelho (duas faixas)
         self.red_lower_1 = np.array([0, 150, 50])
         self.red_upper_1 = np.array([10, 255, 255])
         self.red_lower_2 = np.array([170, 150, 50])
         self.red_upper_2 = np.array([180, 255, 255])
+
         self.smoothing_frames = 5
         self.blue_positions = deque(maxlen=self.smoothing_frames)
         self.red_positions = deque(maxlen=self.smoothing_frames)
@@ -31,11 +35,12 @@ class ColorTracker:
         blurred = cv2.GaussianBlur(frame, (5, 5), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
-        # AZUL
+        # --- DETECÇÃO AZUL ---
         mask_blue = cv2.inRange(hsv, self.blue_lower, self.blue_upper)
         kernel = np.ones((5, 5), np.uint8)
         mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_OPEN, kernel)
         mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_CLOSE, kernel)
+
         contours_blue, _ = cv2.findContours(
             mask_blue, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
@@ -53,12 +58,13 @@ class ColorTracker:
                     largest_blue_contour = None
         center_blue = self.smooth_position(center_blue_raw, self.blue_positions)
 
-        # VERMELHO
+        # --- DETECÇÃO VERMELHO ---
         mask_red1 = cv2.inRange(hsv, self.red_lower_1, self.red_upper_1)
         mask_red2 = cv2.inRange(hsv, self.red_lower_2, self.red_upper_2)
         mask_red_full = cv2.bitwise_or(mask_red1, mask_red2)
         mask_red_full = cv2.morphologyEx(mask_red_full, cv2.MORPH_OPEN, kernel)
         mask_red_full = cv2.morphologyEx(mask_red_full, cv2.MORPH_CLOSE, kernel)
+
         contours_red, _ = cv2.findContours(
             mask_red_full, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
@@ -111,3 +117,22 @@ class ColorTracker:
             )
             cv2.circle(result, detection_data["red_center"], 10, (0, 0, 255), -1)
         return result
+
+
+# --- TESTE RÁPIDO ---
+if __name__ == "__main__":
+    tracker = ColorTracker()
+    cap = cv2.VideoCapture(0)
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        detection = tracker.detect_bracelets(frame)
+        output = tracker.draw_detection(frame, detection)
+        cv2.imshow("Detecção", output)
+        cv2.imshow("Máscara Azul", detection["blue_mask"])
+        cv2.imshow("Máscara Vermelha", detection["red_mask"])
+        if cv2.waitKey(1) & 0xFF == 27:  # ESC para sair
+            break
+    cap.release()
+    cv2.destroyAllWindows()
